@@ -174,12 +174,12 @@
 
 <header>
   <div>
-    <p class="eyebrow">Extintores</p>
+    <p class="eyebrow" id="ciudadLabel">Extintores</p>
     <h1>Panel de seguimiento</h1>
   </div>
   <div>
-    <a class="nav-link" href="index.html">Escanear</a>
-    <a class="nav-link" href="admin.html" style="margin-left:8px;">Administración</a>
+    <a class="nav-link" href="index.html" id="linkEscanear">Escanear</a>
+    <a class="nav-link" href="admin.html" id="linkAdmin" style="margin-left:8px;">Administración</a>
   </div>
 </header>
 
@@ -209,6 +209,9 @@
   const SUPABASE_ANON_KEY = "sb_publishable_5rlhtpAIlwAbpz5Dgrwwbw_Kqur2RMS";
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+  const params = new URLSearchParams(window.location.search);
+  const ciudadActual = params.get('ciudad');
+
   const DIAS_CICLO = 31;
 
   function formatearFecha(fechaIso) {
@@ -235,7 +238,7 @@
 
   async function cargarPanel() {
     const [{ data: extintores, error: errExt }, { data: inspecciones, error: errInsp }] = await Promise.all([
-      supabaseClient.from('extintores').select('*').eq('activo', true),
+      supabaseClient.from('extintores').select('*').eq('activo', true).eq('ciudad', ciudadActual),
       supabaseClient.from('inspecciones').select('*').order('fecha_inspeccion', { ascending: false })
     ]);
 
@@ -293,6 +296,13 @@
       window.location.href = 'login.html';
       return;
     }
+    if (!ciudadActual) {
+      window.location.href = 'login.html';
+      return;
+    }
+    document.getElementById('ciudadLabel').textContent = ciudadActual;
+    document.getElementById('linkEscanear').href = `index.html?ciudad=${encodeURIComponent(ciudadActual)}`;
+    document.getElementById('linkAdmin').href = `admin.html?ciudad=${encodeURIComponent(ciudadActual)}`;
     cargarPanel();
   });
 </script>

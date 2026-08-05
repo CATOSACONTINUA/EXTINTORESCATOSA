@@ -147,6 +147,15 @@
       <label for="password">Contraseña</label>
       <input type="password" id="password" required autocomplete="current-password">
 
+      <label for="ciudad">Ciudad</label>
+      <select id="ciudad" required>
+        <option value="" disabled selected>Selecciona una ciudad</option>
+        <option value="Torreón">Torreón</option>
+        <option value="Gómez Palacio">Gómez Palacio</option>
+        <option value="Piedras Negras">Piedras Negras</option>
+        <option value="Monclova">Monclova</option>
+      </select>
+
       <p class="error-msg" id="errorMsg"></p>
 
       <button type="submit" class="primary" id="btnLogin">Entrar</button>
@@ -164,14 +173,6 @@
   const errorMsg = document.getElementById('errorMsg');
   const btnLogin = document.getElementById('btnLogin');
 
-  // Si ya hay sesión activa, salta directo al escaneo
-  window.addEventListener('DOMContentLoaded', async () => {
-    const { data } = await supabaseClient.auth.getSession();
-    if (data.session) {
-      window.location.href = 'index.html';
-    }
-  });
-
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     errorMsg.classList.remove('visible');
@@ -180,6 +181,7 @@
 
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
+    const ciudad = document.getElementById('ciudad').value;
 
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
@@ -191,7 +193,7 @@
       return;
     }
 
-    window.location.href = 'index.html';
+    window.location.href = `index.html?ciudad=${encodeURIComponent(ciudad)}`;
   });
 </script>
 

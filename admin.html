@@ -208,10 +208,10 @@
 
 <header>
   <div>
-    <p class="eyebrow">Administración</p>
+    <p class="eyebrow" id="ciudadLabel">Administración</p>
     <h1>Extintores</h1>
   </div>
-  <a class="nav-link" href="panel.html">Ver panel</a>
+  <a class="nav-link" href="panel.html" id="linkPanel">Ver panel</a>
 </header>
 
 <main>
@@ -265,6 +265,9 @@
   const SUPABASE_ANON_KEY = "sb_publishable_5rlhtpAIlwAbpz5Dgrwwbw_Kqur2RMS";
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+  const params = new URLSearchParams(window.location.search);
+  const ciudadActual = params.get('ciudad');
+
   const form = document.getElementById('formExtintor');
   const statusMsg = document.getElementById('statusMsg');
   const btnGuardar = document.getElementById('btnGuardar');
@@ -294,6 +297,7 @@
       tipo: tipo,
       tiene_manometro: tieneManometro,
       fecha_vencimiento: fechaVencimiento,
+      ciudad: ciudadActual,
       activo: true
     });
 
@@ -334,6 +338,7 @@
       .from('extintores')
       .select('*')
       .eq('activo', true)
+      .eq('ciudad', ciudadActual)
       .order('created_at', { ascending: false });
 
     const contenedor = document.getElementById('listaExtintores');
@@ -367,6 +372,12 @@
       window.location.href = 'login.html';
       return;
     }
+    if (!ciudadActual) {
+      window.location.href = 'login.html';
+      return;
+    }
+    document.getElementById('ciudadLabel').textContent = `Administración — ${ciudadActual}`;
+    document.getElementById('linkPanel').href = `panel.html?ciudad=${encodeURIComponent(ciudadActual)}`;
     cargarLista();
   });
 </script>

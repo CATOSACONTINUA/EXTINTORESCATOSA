@@ -230,10 +230,10 @@
 <div class="hazard-strip"></div>
 
 <header>
-  <p class="eyebrow">Inspección cada 31 días</p>
+  <p class="eyebrow">Inspección cada 31 días — <span id="ciudadLabel"></span></p>
   <h1>Escanear extintor</h1>
   <button id="btnLogout" style="margin-top:12px; background:none; border:1px solid var(--steel-line); color:var(--steel); font-size:12px; padding:6px 12px; border-radius:3px; cursor:pointer; font-family:'Inter',sans-serif;">Cerrar sesión</button>
-  <a href="panel.html" style="margin-top:12px; margin-left:8px; display:inline-block; background:none; border:1px solid var(--steel-line); color:var(--steel); font-size:12px; padding:6px 12px; border-radius:3px; text-decoration:none; font-family:'Inter',sans-serif;">Ver panel</a>
+  <a href="panel.html" id="linkPanel" style="margin-top:12px; margin-left:8px; display:inline-block; background:none; border:1px solid var(--steel-line); color:var(--steel); font-size:12px; padding:6px 12px; border-radius:3px; text-decoration:none; font-family:'Inter',sans-serif;">Ver panel</a>
 </header>
 
 <main>
@@ -285,6 +285,9 @@
 
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+  const params = new URLSearchParams(window.location.search);
+  const ciudadActual = params.get('ciudad');
+
   const scanPlate   = document.getElementById('scanPlate');
   const scanHint    = document.getElementById('scanHint');
   const resultCard  = document.getElementById('resultCard');
@@ -300,6 +303,7 @@
       .select('*')
       .eq('codigo_qr', codigo)
       .eq('activo', true)
+      .eq('ciudad', ciudadActual)
       .single();
 
     if (error || !data) return null;
@@ -319,7 +323,7 @@
 
     document.getElementById('btnIniciar').onclick = () => {
       // Siguiente pantalla a construir: formulario de inspección
-      window.location.href = `inspeccion.html?extintor_id=${extintor.id}`;
+      window.location.href = `inspeccion.html?extintor_id=${extintor.id}&ciudad=${encodeURIComponent(ciudadActual)}`;
     };
   }
 
@@ -362,8 +366,14 @@
       window.location.href = 'login.html';
       return;
     }
+    if (!ciudadActual) {
+      window.location.href = 'login.html';
+      return;
+    }
 
     scanner = new Html5Qrcode("reader");
+    document.getElementById('ciudadLabel').textContent = ciudadActual;
+    document.getElementById('linkPanel').href = `panel.html?ciudad=${encodeURIComponent(ciudadActual)}`;
     document.getElementById('btnLogout').onclick = async () => {
       await supabaseClient.auth.signOut();
       window.location.href = 'login.html';

@@ -274,6 +274,7 @@
 
   const params = new URLSearchParams(window.location.search);
   const extintorId = params.get('extintor_id');
+  const ciudadActual = params.get('ciudad');
 
   const respuestas = {}; // { preguntaId: { respuesta: 'si'|'no'|'na', comentario: '' } }
 
@@ -420,7 +421,7 @@
 
   document.getElementById('btnSubmit').addEventListener('click', guardarInspeccion);
   document.getElementById('btnVolverEscanear').addEventListener('click', () => {
-    window.location.href = 'index.html';
+    window.location.href = `index.html?ciudad=${encodeURIComponent(ciudadActual)}`;
   });
 
   window.addEventListener('DOMContentLoaded', async () => {
