@@ -70,16 +70,20 @@
   }
 
   a.nav-link, button.nav-link{
+    display:inline-block;
     background:none;
-    border: 1px solid var(--steel-line);
-    color: var(--steel);
-    font-size: 12px;
-    padding: 8px 14px;
-    border-radius: 3px;
+    border: 1.5px solid var(--amber);
+    color: var(--amber);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 16px;
+    border-radius: 4px;
     cursor:pointer;
     font-family:'Inter', sans-serif;
     text-decoration:none;
+    letter-spacing: 0.02em;
   }
+  a.nav-link:active, button.nav-link:active{ background: rgba(245,166,35,0.12); }
 
   main{
     max-width: 760px;

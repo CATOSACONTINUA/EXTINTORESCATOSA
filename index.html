@@ -52,6 +52,22 @@
     border-bottom: 1px solid var(--steel-line);
   }
 
+  .nav-link{
+    display:inline-block;
+    background:none;
+    border: 1.5px solid var(--amber);
+    color: var(--amber);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 16px;
+    border-radius: 4px;
+    cursor:pointer;
+    font-family:'Inter', sans-serif;
+    text-decoration:none;
+    letter-spacing: 0.02em;
+  }
+  .nav-link:active{ background: rgba(245,166,35,0.12); }
+
   .eyebrow{
     font-family:'JetBrains Mono', monospace;
     font-size: 11px;
@@ -232,8 +248,8 @@
 <header>
   <p class="eyebrow">Inspección cada 31 días — <span id="sucursalLabel"></span></p>
   <h1>Escanear extintor</h1>
-  <button id="btnLogout" style="margin-top:12px; background:none; border:1px solid var(--steel-line); color:var(--steel); font-size:12px; padding:6px 12px; border-radius:3px; cursor:pointer; font-family:'Inter',sans-serif;">Cerrar sesión</button>
-  <a href="panel.html" id="linkPanel" style="margin-top:12px; margin-left:8px; display:inline-block; background:none; border:1px solid var(--steel-line); color:var(--steel); font-size:12px; padding:6px 12px; border-radius:3px; text-decoration:none; font-family:'Inter',sans-serif;">Ver panel</a>
+  <button id="btnLogout" class="nav-link" style="margin-top:12px;">Cerrar sesión</button>
+  <a href="panel.html" id="linkPanel" class="nav-link" style="margin-top:12px; margin-left:8px;">Ver panel</a>
 </header>
 
 <main>
