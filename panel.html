@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Panel de seguimiento</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  :root{
+    --carbon: #1C1B1A;
+    --carbon-2: #262523;
+    --carbon-3: #302E2B;
+    --red: #C8102E;
+    --green: #2E7D32;
+    --amber: #F5A623;
+    --bone: #F2EFE9;
+    --steel: #4A4E54;
+    --steel-line: #38363430;
+  }
+
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body{
+    margin:0;
+    min-height:100vh;
+    background: var(--carbon);
+    color: var(--bone);
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  .hazard-strip{
+    height:6px;
+    width:100%;
+    background: repeating-linear-gradient(
+      -45deg,
+      var(--amber) 0 14px,
+      var(--carbon) 14px 28px
+    );
+  }
+
+  header{
+    padding: 18px 20px 16px;
+    border-bottom: 1px solid var(--steel-line);
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+  }
+
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin: 0 0 4px;
+  }
+
+  h1{
+    font-family:'Oswald', sans-serif;
+    font-weight:600;
+    font-size: 22px;
+    letter-spacing: 0.01em;
+    margin:0;
+    text-transform: uppercase;
+  }
+
+  a.nav-link, button.nav-link{
+    background:none;
+    border: 1px solid var(--steel-line);
+    color: var(--steel);
+    font-size: 12px;
+    padding: 8px 14px;
+    border-radius: 3px;
+    cursor:pointer;
+    font-family:'Inter', sans-serif;
+    text-decoration:none;
+  }
+
+  main{
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .summary-row{
+    display:flex;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .summary-chip{
+    flex:1;
+    background: var(--carbon-2);
+    border: 1px solid var(--steel-line);
+    border-radius: 4px;
+    padding: 14px;
+    text-align:center;
+  }
+  .summary-chip .num{
+    font-family:'Oswald', sans-serif;
+    font-weight:700;
+    font-size: 26px;
+    display:block;
+  }
+  .summary-chip .label{
+    font-size: 11px;
+    color: #C9C6BE;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .summary-chip.aldia .num{ color: var(--green); }
+  .summary-chip.atrasado .num{ color: var(--amber); }
+  .summary-chip.atencion .num{ color: var(--red); }
+
+  .extintor-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background: var(--carbon-2);
+    border: 1px solid var(--steel-line);
+    border-radius: 4px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    gap: 12px;
+  }
+
+  .extintor-info .codigo{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--amber);
+    margin: 0 0 3px;
+  }
+  .extintor-info .ubicacion{
+    font-family:'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    text-transform: uppercase;
+    margin: 0 0 3px;
+  }
+  .extintor-info .fecha{
+    font-size: 12px;
+    color: var(--steel);
+  }
+
+  .status-badge{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 6px 10px;
+    border-radius: 3px;
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  .status-badge.aldia{ background: rgba(46,125,50,0.18); color: #5EBB63; }
+  .status-badge.atrasado{ background: rgba(245,166,35,0.16); color: var(--amber); }
+  .status-badge.atencion{ background: rgba(200,16,46,0.18); color: #F0576D; }
+
+  .loading, .empty{
+    text-align:center;
+    color: var(--steel);
+    padding: 40px 20px;
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+
+<div class="hazard-strip"></div>
+
+<header>
+  <div>
+    <p class="eyebrow">Extintores</p>
+    <h1>Panel de seguimiento</h1>
+  </div>
+  <a class="nav-link" href="index.html">Escanear</a>
+</header>
+
+<main>
+  <div class="summary-row" id="summaryRow" style="display:none;">
+    <div class="summary-chip aldia">
+      <span class="num" id="countAldia">0</span>
+      <span class="label">Al día</span>
+    </div>
+    <div class="summary-chip atrasado">
+      <span class="num" id="countAtrasado">0</span>
+      <span class="label">Atrasados</span>
+    </div>
+    <div class="summary-chip atencion">
+      <span class="num" id="countAtencion">0</span>
+      <span class="label">Atención</span>
+    </div>
+  </div>
+
+  <div id="listContainer">
+    <p class="loading">Cargando extintores...</p>
+  </div>
+</main>
+
+<script>
+  const SUPABASE_URL = "https://naihctepfrnprudwfexj.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_5rlhtpAIlwAbpz5Dgrwwbw_Kqur2RMS";
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const DIAS_CICLO = 31;
+
+  function formatearFecha(fechaIso) {
+    if (!fechaIso) return 'Sin inspecciones';
+    const fecha = new Date(fechaIso);
+    return fecha.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  function calcularEstado(ultimaInspeccion) {
+    if (!ultimaInspeccion) {
+      return { estado: 'atrasado', label: 'Nunca inspeccionado' };
+    }
+
+    const dias = (Date.now() - new Date(ultimaInspeccion.fecha_inspeccion).getTime()) / (1000 * 60 * 60 * 24);
+
+    if (ultimaInspeccion.resultado === 'requiere_atencion') {
+      return { estado: 'atencion', label: 'Requiere atención' };
+    }
+    if (dias > DIAS_CICLO) {
+      return { estado: 'atrasado', label: 'Atrasado' };
+    }
+    return { estado: 'aldia', label: 'Al día' };
+  }
+
+  async function cargarPanel() {
+    const [{ data: extintores, error: errExt }, { data: inspecciones, error: errInsp }] = await Promise.all([
+      supabaseClient.from('extintores').select('*').eq('activo', true),
+      supabaseClient.from('inspecciones').select('*').order('fecha_inspeccion', { ascending: false })
+    ]);
+
+    const listContainer = document.getElementById('listContainer');
+
+    if (errExt || !extintores) {
+      listContainer.innerHTML = '<p class="loading">Error al cargar los extintores.</p>';
+      return;
+    }
+
+    if (extintores.length === 0) {
+      listContainer.innerHTML = '<p class="empty">Todavía no hay extintores registrados.</p>';
+      return;
+    }
+
+    // Última inspección por extintor (las inspecciones ya vienen ordenadas por fecha descendente)
+    const ultimaPorExtintor = {};
+    (inspecciones || []).forEach(insp => {
+      if (!ultimaPorExtintor[insp.extintor_id]) {
+        ultimaPorExtintor[insp.extintor_id] = insp;
+      }
+    });
+
+    const filas = extintores.map(ext => {
+      const ultima = ultimaPorExtintor[ext.id] || null;
+      const { estado, label } = calcularEstado(ultima);
+      return { ...ext, estado, label, fechaUltima: ultima?.fecha_inspeccion || null };
+    });
+
+    // Ordenar: primero lo que requiere atención, luego atrasados, luego al día
+    const prioridad = { atencion: 0, atrasado: 1, aldia: 2 };
+    filas.sort((a, b) => prioridad[a.estado] - prioridad[b.estado]);
+
+    // Resumen
+    document.getElementById('countAldia').textContent = filas.filter(f => f.estado === 'aldia').length;
+    document.getElementById('countAtrasado').textContent = filas.filter(f => f.estado === 'atrasado').length;
+    document.getElementById('countAtencion').textContent = filas.filter(f => f.estado === 'atencion').length;
+    document.getElementById('summaryRow').style.display = 'flex';
+
+    listContainer.innerHTML = filas.map(f => `
+      <div class="extintor-row">
+        <div class="extintor-info">
+          <p class="codigo">${f.codigo_qr}</p>
+          <p class="ubicacion">${f.ubicacion}</p>
+          <p class="fecha">Última inspección: ${formatearFecha(f.fechaUltima)}</p>
+        </div>
+        <span class="status-badge ${f.estado}">${f.label}</span>
+      </div>
+    `).join('');
+  }
+
+  window.addEventListener('DOMContentLoaded', async () => {
+    const { data } = await supabaseClient.auth.getSession();
+    if (!data.session) {
+      window.location.href = 'login.html';
+      return;
+    }
+    cargarPanel();
+  });
+</script>
+
+</body>
+</html>
