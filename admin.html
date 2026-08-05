@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Administración de extintores</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+
+<style>
+  :root{
+    --carbon: #1C1B1A;
+    --carbon-2: #262523;
+    --carbon-3: #302E2B;
+    --red: #C8102E;
+    --green: #2E7D32;
+    --amber: #F5A623;
+    --bone: #F2EFE9;
+    --steel: #4A4E54;
+    --steel-line: #38363430;
+  }
+
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body{
+    margin:0;
+    min-height:100vh;
+    background: var(--carbon);
+    color: var(--bone);
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  .hazard-strip{
+    height:6px;
+    width:100%;
+    background: repeating-linear-gradient(-45deg, var(--amber) 0 14px, var(--carbon) 14px 28px);
+  }
+
+  header{
+    padding: 18px 20px 16px;
+    border-bottom: 1px solid var(--steel-line);
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+  }
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin: 0 0 4px;
+  }
+  h1{
+    font-family:'Oswald', sans-serif;
+    font-weight:600;
+    font-size: 22px;
+    margin:0;
+    text-transform: uppercase;
+  }
+  a.nav-link{
+    background:none;
+    border: 1px solid var(--steel-line);
+    color: var(--steel);
+    font-size: 12px;
+    padding: 8px 14px;
+    border-radius: 3px;
+    font-family:'Inter', sans-serif;
+    text-decoration:none;
+  }
+
+  main{
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  section{
+    background: var(--carbon-2);
+    border: 1px solid var(--steel-line);
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  h2{
+    font-family:'Oswald', sans-serif;
+    font-weight:600;
+    font-size: 15px;
+    text-transform: uppercase;
+    margin: 0 0 16px;
+    letter-spacing: 0.02em;
+  }
+
+  label{
+    display:block;
+    font-size: 11px;
+    color: #C9C6BE;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 6px;
+  }
+  input, select{
+    width:100%;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    background: var(--carbon-3);
+    border: 1px solid var(--steel-line);
+    border-radius: 3px;
+    color: var(--bone);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+  }
+  input:focus, select:focus{
+    outline: 2px solid var(--amber);
+    outline-offset: 0;
+  }
+
+  .checkbox-row{
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .checkbox-row input{ width:auto; margin:0; }
+  .checkbox-row label{ margin:0; text-transform:none; font-size:13px; color: var(--bone); }
+
+  button.primary{
+    width:100%;
+    padding: 14px;
+    background: var(--red);
+    color: var(--bone);
+    border:none;
+    border-radius: 3px;
+    font-family:'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    cursor:pointer;
+  }
+  button.primary:disabled{ opacity:0.5; cursor:not-allowed; }
+
+  .status-msg{ font-size:13px; margin-top:10px; text-align:center; color: var(--steel); }
+  .status-msg.error{ color: var(--red); }
+  .status-msg.success{ color: var(--green); }
+
+  /* Resultado con QR */
+  .qr-result{
+    display:none;
+    text-align:center;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--steel-line);
+  }
+  .qr-result.visible{ display:block; }
+  .qr-result canvas{
+    background: #fff;
+    padding: 12px;
+    border-radius: 4px;
+  }
+  .qr-result .qr-label{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--amber);
+    margin: 12px 0 4px;
+  }
+  .qr-result .qr-ubicacion{
+    font-size: 13px;
+    color: #C9C6BE;
+    margin: 0 0 16px;
+  }
+  button.ghost{
+    width:100%;
+    padding: 12px;
+    background: transparent;
+    color: var(--bone);
+    border: 1px solid var(--steel-line);
+    border-radius: 3px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    cursor:pointer;
+  }
+
+  /* Lista de extintores existentes */
+  .extintor-item{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--steel-line);
+    font-size: 13px;
+  }
+  .extintor-item:last-child{ border-bottom:none; }
+  .extintor-item .codigo{ font-family:'JetBrains Mono', monospace; color: var(--amber); }
+  .extintor-item button{
+    background:none; border:1px solid var(--steel-line); color: var(--steel);
+    font-size:11px; padding:6px 10px; border-radius:3px; cursor:pointer; font-family:'Inter',sans-serif;
+  }
+</style>
+</head>
+<body>
+
+<div class="hazard-strip"></div>
+
+<header>
+  <div>
+    <p class="eyebrow">Administración</p>
+    <h1>Extintores</h1>
+  </div>
+  <a class="nav-link" href="panel.html">Ver panel</a>
+</header>
+
+<main>
+  <section>
+    <h2>Agregar extintor nuevo</h2>
+    <form id="formExtintor">
+      <label for="codigoQr">Código (identificador único)</label>
+      <input type="text" id="codigoQr" placeholder="ej. EXT-006" required>
+
+      <label for="ubicacion">Ubicación</label>
+      <input type="text" id="ubicacion" placeholder="ej. Almacén B - Entrada" required>
+
+      <label for="tipo">Tipo</label>
+      <select id="tipo">
+        <option value="PQS">PQS</option>
+        <option value="CO2">CO2</option>
+        <option value="Agua">Agua</option>
+        <option value="Espuma">Espuma</option>
+      </select>
+
+      <label for="fechaVencimiento">Fecha de vencimiento</label>
+      <input type="date" id="fechaVencimiento">
+
+      <div class="checkbox-row">
+        <input type="checkbox" id="tieneManometro" checked>
+        <label for="tieneManometro">Cuenta con manómetro</label>
+      </div>
+
+      <button type="submit" class="primary" id="btnGuardar">Guardar y generar QR</button>
+      <p class="status-msg" id="statusMsg"></p>
+    </form>
+
+    <div class="qr-result" id="qrResult">
+      <canvas id="qrCanvas"></canvas>
+      <p class="qr-label" id="qrLabel"></p>
+      <p class="qr-ubicacion" id="qrUbicacion"></p>
+      <button class="ghost" id="btnDescargar">Descargar imagen del QR</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Extintores registrados</h2>
+    <div id="listaExtintores">
+      <p class="status-msg">Cargando...</p>
+    </div>
+  </section>
+</main>
+
+<script>
+  const SUPABASE_URL = "https://naihctepfrnprudwfexj.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_5rlhtpAIlwAbpz5Dgrwwbw_Kqur2RMS";
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const form = document.getElementById('formExtintor');
+  const statusMsg = document.getElementById('statusMsg');
+  const btnGuardar = document.getElementById('btnGuardar');
+  const qrResult = document.getElementById('qrResult');
+
+  async function generarQR(texto) {
+    const canvas = document.getElementById('qrCanvas');
+    await QRCode.toCanvas(canvas, texto, { width: 220, margin: 2 });
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    statusMsg.textContent = '';
+    statusMsg.classList.remove('error', 'success');
+    btnGuardar.disabled = true;
+    btnGuardar.textContent = 'Guardando...';
+
+    const codigoQr = document.getElementById('codigoQr').value.trim();
+    const ubicacion = document.getElementById('ubicacion').value.trim();
+    const tipo = document.getElementById('tipo').value;
+    const fechaVencimiento = document.getElementById('fechaVencimiento').value || null;
+    const tieneManometro = document.getElementById('tieneManometro').checked;
+
+    const { error } = await supabaseClient.from('extintores').insert({
+      codigo_qr: codigoQr,
+      ubicacion: ubicacion,
+      tipo: tipo,
+      tiene_manometro: tieneManometro,
+      fecha_vencimiento: fechaVencimiento,
+      activo: true
+    });
+
+    btnGuardar.disabled = false;
+    btnGuardar.textContent = 'Guardar y generar QR';
+
+    if (error) {
+      statusMsg.textContent = error.code === '23505'
+        ? 'Ese código ya existe. Usa uno diferente.'
+        : 'Error al guardar. Intenta de nuevo.';
+      statusMsg.classList.add('error');
+      return;
+    }
+
+    statusMsg.textContent = 'Extintor guardado correctamente.';
+    statusMsg.classList.add('success');
+
+    await generarQR(codigoQr);
+    document.getElementById('qrLabel').textContent = codigoQr;
+    document.getElementById('qrUbicacion').textContent = ubicacion;
+    qrResult.classList.add('visible');
+
+    form.reset();
+    document.getElementById('tieneManometro').checked = true;
+    cargarLista();
+  });
+
+  document.getElementById('btnDescargar').addEventListener('click', () => {
+    const canvas = document.getElementById('qrCanvas');
+    const link = document.createElement('a');
+    link.download = `qr-${document.getElementById('qrLabel').textContent}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  });
+
+  async function cargarLista() {
+    const { data, error } = await supabaseClient
+      .from('extintores')
+      .select('*')
+      .eq('activo', true)
+      .order('created_at', { ascending: false });
+
+    const contenedor = document.getElementById('listaExtintores');
+
+    if (error || !data || data.length === 0) {
+      contenedor.innerHTML = '<p class="status-msg">Aún no hay extintores registrados.</p>';
+      return;
+    }
+
+    contenedor.innerHTML = data.map(ext => `
+      <div class="extintor-item">
+        <div>
+          <span class="codigo">${ext.codigo_qr}</span> — ${ext.ubicacion}
+        </div>
+        <button onclick="verQR('${ext.codigo_qr}', '${ext.ubicacion.replace(/'/g, "\\'")}')">Ver QR</button>
+      </div>
+    `).join('');
+  }
+
+  window.verQR = async (codigo, ubicacion) => {
+    await generarQR(codigo);
+    document.getElementById('qrLabel').textContent = codigo;
+    document.getElementById('qrUbicacion').textContent = ubicacion;
+    qrResult.classList.add('visible');
+    qrResult.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  window.addEventListener('DOMContentLoaded', async () => {
+    const { data } = await supabaseClient.auth.getSession();
+    if (!data.session) {
+      window.location.href = 'login.html';
+      return;
+    }
+    cargarLista();
+  });
+</script>
+
+</body>
+</html>
