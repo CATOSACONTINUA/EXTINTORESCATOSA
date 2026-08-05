@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Escanear extintor</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  :root{
+    --carbon: #1C1B1A;
+    --carbon-2: #262523;
+    --red: #C8102E;
+    --green: #2E7D32;
+    --amber: #F5A623;
+    --bone: #F2EFE9;
+    --steel: #4A4E54;
+    --steel-line: #38363430;
+  }
+
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body{
+    margin:0;
+    min-height:100vh;
+    background: var(--carbon);
+    color: var(--bone);
+    font-family: 'Inter', system-ui, sans-serif;
+    display:flex;
+    flex-direction:column;
+  }
+
+  /* Franja de advertencia — el único acento decorativo, usado una sola vez */
+  .hazard-strip{
+    height:6px;
+    width:100%;
+    background: repeating-linear-gradient(
+      -45deg,
+      var(--amber) 0 14px,
+      var(--carbon) 14px 28px
+    );
+    flex-shrink:0;
+  }
+
+  header{
+    padding: 18px 20px 12px;
+    border-bottom: 1px solid var(--steel-line);
+  }
+
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin: 0 0 4px;
+  }
+
+  h1{
+    font-family:'Oswald', sans-serif;
+    font-weight:600;
+    font-size: 22px;
+    letter-spacing: 0.01em;
+    margin:0;
+    text-transform: uppercase;
+  }
+
+  main{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding: 24px 20px 32px;
+    gap: 20px;
+  }
+
+  /* Visor de escaneo — placa troquelada */
+  .scan-plate{
+    position:relative;
+    width:100%;
+    max-width: 420px;
+    aspect-ratio: 1 / 1;
+    background: #000;
+    border-radius: 4px;
+    overflow:hidden;
+    border: 1px solid var(--steel-line);
+  }
+
+  #reader{
+    width:100%;
+    height:100%;
+  }
+  #reader video{
+    object-fit: cover;
+    width:100% !important;
+    height:100% !important;
+  }
+
+  .corner{
+    position:absolute;
+    width: 34px;
+    height: 34px;
+    border: 3px solid var(--amber);
+    pointer-events:none;
+    z-index: 5;
+  }
+  .corner.tl{ top:14px; left:14px; border-right:none; border-bottom:none; }
+  .corner.tr{ top:14px; right:14px; border-left:none; border-bottom:none; }
+  .corner.bl{ bottom:14px; left:14px; border-right:none; border-top:none; }
+  .corner.br{ bottom:14px; right:14px; border-left:none; border-top:none; }
+
+  .scan-hint{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--steel);
+    text-align:center;
+    max-width: 320px;
+    line-height: 1.5;
+  }
+
+  /* Tarjeta de resultado tras escanear */
+  .result-card{
+    width:100%;
+    max-width: 420px;
+    background: var(--carbon-2);
+    border: 1px solid var(--steel-line);
+    border-radius: 4px;
+    padding: 20px;
+    display:none;
+  }
+  .result-card.visible{ display:block; }
+
+  .result-card .code{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--amber);
+    letter-spacing: 0.05em;
+    margin: 0 0 6px;
+  }
+
+  .result-card .ubicacion{
+    font-family:'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 19px;
+    text-transform: uppercase;
+    margin: 0 0 16px;
+    line-height: 1.25;
+  }
+
+  .result-card .meta{
+    display:flex;
+    gap: 20px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: #C9C6BE;
+  }
+  .result-card .meta strong{
+    display:block;
+    color: var(--bone);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  button.primary{
+    width:100%;
+    padding: 15px;
+    background: var(--red);
+    color: var(--bone);
+    border:none;
+    border-radius: 3px;
+    font-family:'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    cursor:pointer;
+  }
+  button.primary:active{ opacity: 0.85; }
+
+  button.ghost{
+    width:100%;
+    padding: 12px;
+    margin-top: 10px;
+    background: transparent;
+    color: var(--steel);
+    border: 1px solid var(--steel-line);
+    border-radius: 3px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    cursor:pointer;
+  }
+
+  /* Estado de error — código no encontrado */
+  .error-banner{
+    width:100%;
+    max-width: 420px;
+    background: #2A1414;
+    border: 1px solid #5A2020;
+    border-radius: 4px;
+    padding: 16px 18px;
+    display:none;
+  }
+  .error-banner.visible{ display:block; }
+  .error-banner .code{
+    font-family:'JetBrains Mono', monospace;
+    color: var(--red);
+    font-size: 13px;
+    margin:0 0 4px;
+  }
+  .error-banner p{
+    margin:0;
+    font-size: 14px;
+    color: var(--bone);
+    line-height: 1.5;
+  }
+
+  :focus-visible{
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+</style>
+</head>
+<body>
+
+<div class="hazard-strip"></div>
+
+<header>
+  <p class="eyebrow">Inspección semanal</p>
+  <h1>Escanear extintor</h1>
+</header>
+
+<main>
+
+  <div class="scan-plate" id="scanPlate">
+    <div id="reader"></div>
+    <div class="corner tl"></div>
+    <div class="corner tr"></div>
+    <div class="corner bl"></div>
+    <div class="corner br"></div>
+  </div>
+
+  <p class="scan-hint" id="scanHint">
+    Apunta la cámara al código QR colocado junto al extintor.<br>
+    El escaneo es automático, no necesitas tocar la pantalla.
+  </p>
+
+  <div class="error-banner" id="errorBanner">
+    <p class="code" id="errorCode"></p>
+    <p>No se encontró ningún extintor con este código. Verifica que el QR corresponda a un extintor registrado.</p>
+  </div>
+
+  <div class="result-card" id="resultCard">
+    <p class="code" id="resultCode"></p>
+    <p class="ubicacion" id="resultUbicacion"></p>
+    <div class="meta">
+      <div>
+        <span>Tipo</span>
+        <strong id="resultTipo"></strong>
+      </div>
+      <div>
+        <span>Vence</span>
+        <strong id="resultVencimiento"></strong>
+      </div>
+    </div>
+    <button class="primary" id="btnIniciar">Iniciar inspección</button>
+    <button class="ghost" id="btnEscanearOtro">Escanear otro código</button>
+  </div>
+
+</main>
+
+<script>
+  // =========================================================
+  // CONFIGURACIÓN — reemplaza con los datos de tu proyecto Supabase
+  // (Dashboard > Project Settings > API)
+  // =========================================================
+  const SUPABASE_URL = "https://naihctepfrnprudwfexj.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_5rlhtpAIlwAbpz5Dgrwwbw_Kqur2RMS";
+
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const scanPlate   = document.getElementById('scanPlate');
+  const scanHint    = document.getElementById('scanHint');
+  const resultCard  = document.getElementById('resultCard');
+  const errorBanner = document.getElementById('errorBanner');
+  const errorCode   = document.getElementById('errorCode');
+
+  let scanner = null;
+  let isProcessing = false;
+
+  async function buscarExtintor(codigo) {
+    const { data, error } = await supabase
+      .from('extintores')
+      .select('*')
+      .eq('codigo_qr', codigo)
+      .eq('activo', true)
+      .single();
+
+    if (error || !data) return null;
+    return data;
+  }
+
+  function mostrarResultado(extintor) {
+    document.getElementById('resultCode').textContent = extintor.codigo_qr;
+    document.getElementById('resultUbicacion').textContent = extintor.ubicacion;
+    document.getElementById('resultTipo').textContent = extintor.tipo || '—';
+    document.getElementById('resultVencimiento').textContent = extintor.fecha_vencimiento || '—';
+
+    resultCard.classList.add('visible');
+    scanPlate.style.display = 'none';
+    scanHint.style.display = 'none';
+    errorBanner.classList.remove('visible');
+
+    document.getElementById('btnIniciar').onclick = () => {
+      // Siguiente pantalla a construir: formulario de inspección
+      window.location.href = `inspeccion.html?extintor_id=${extintor.id}`;
+    };
+  }
+
+  function mostrarError(codigo) {
+    errorCode.textContent = codigo;
+    errorBanner.classList.add('visible');
+    resultCard.classList.remove('visible');
+  }
+
+  async function onScanSuccess(decodedText) {
+    if (isProcessing) return;
+    isProcessing = true;
+
+    await scanner.pause(true);
+
+    const extintor = await buscarExtintor(decodedText.trim());
+
+    if (extintor) {
+      mostrarResultado(extintor);
+    } else {
+      mostrarError(decodedText.trim());
+      setTimeout(() => {
+        isProcessing = false;
+        scanner.resume();
+      }, 2500);
+    }
+  }
+
+  document.getElementById('btnEscanearOtro').onclick = () => {
+    resultCard.classList.remove('visible');
+    scanPlate.style.display = 'block';
+    scanHint.style.display = 'block';
+    isProcessing = false;
+    scanner.resume();
+  };
+
+  window.addEventListener('DOMContentLoaded', () => {
+    scanner = new Html5Qrcode("reader");
+    scanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 240, height: 240 } },
+      onScanSuccess
+    ).catch(err => {
+      scanHint.textContent = "No se pudo acceder a la cámara. Revisa los permisos del navegador.";
+    });
+  });
+</script>
+
+</body>
+</html>
