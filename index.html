@@ -281,7 +281,7 @@
   const SUPABASE_URL = "https://naihctepfrnprudwfexj.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_5rlhtpAIlwAbpz5Dgrwwbw_Kqur2RMS";
 
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const scanPlate   = document.getElementById('scanPlate');
   const scanHint    = document.getElementById('scanHint');
@@ -293,7 +293,7 @@
   let isProcessing = false;
 
   async function buscarExtintor(codigo) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('extintores')
       .select('*')
       .eq('codigo_qr', codigo)
