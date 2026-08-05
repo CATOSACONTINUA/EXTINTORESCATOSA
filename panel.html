@@ -174,7 +174,7 @@
 
 <header>
   <div>
-    <p class="eyebrow" id="ciudadLabel">Extintores</p>
+    <p class="eyebrow" id="sucursalLabel">Extintores</p>
     <h1>Panel de seguimiento</h1>
   </div>
   <div>
@@ -210,7 +210,7 @@
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const params = new URLSearchParams(window.location.search);
-  const ciudadActual = params.get('ciudad');
+  const sucursalActual = params.get('sucursal');
 
   const DIAS_CICLO = 31;
 
@@ -238,7 +238,7 @@
 
   async function cargarPanel() {
     const [{ data: extintores, error: errExt }, { data: inspecciones, error: errInsp }] = await Promise.all([
-      supabaseClient.from('extintores').select('*').eq('activo', true).eq('ciudad', ciudadActual),
+      supabaseClient.from('extintores').select('*').eq('activo', true).eq('sucursal', sucursalActual),
       supabaseClient.from('inspecciones').select('*').order('fecha_inspeccion', { ascending: false })
     ]);
 
@@ -296,13 +296,13 @@
       window.location.href = 'login.html';
       return;
     }
-    if (!ciudadActual) {
+    if (!sucursalActual) {
       window.location.href = 'login.html';
       return;
     }
-    document.getElementById('ciudadLabel').textContent = ciudadActual;
-    document.getElementById('linkEscanear').href = `index.html?ciudad=${encodeURIComponent(ciudadActual)}`;
-    document.getElementById('linkAdmin').href = `admin.html?ciudad=${encodeURIComponent(ciudadActual)}`;
+    document.getElementById('sucursalLabel').textContent = sucursalActual;
+    document.getElementById('linkEscanear').href = `index.html?sucursal=${encodeURIComponent(sucursalActual)}`;
+    document.getElementById('linkAdmin').href = `admin.html?sucursal=${encodeURIComponent(sucursalActual)}`;
     cargarPanel();
   });
 </script>

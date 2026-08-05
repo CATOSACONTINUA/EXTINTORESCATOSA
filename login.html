@@ -147,9 +147,9 @@
       <label for="password">Contraseña</label>
       <input type="password" id="password" required autocomplete="current-password">
 
-      <label for="ciudad">Ciudad</label>
-      <select id="ciudad" required>
-        <option value="" disabled selected>Selecciona una ciudad</option>
+      <label for="sucursal">Sucursal</label>
+      <select id="sucursal" required>
+        <option value="" disabled selected>Selecciona una sucursal</option>
         <option value="Torreón">Torreón</option>
         <option value="Gómez Palacio">Gómez Palacio</option>
         <option value="Piedras Negras">Piedras Negras</option>
@@ -181,7 +181,7 @@
 
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
-    const ciudad = document.getElementById('ciudad').value;
+    const sucursal = document.getElementById('sucursal').value;
 
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
@@ -193,7 +193,7 @@
       return;
     }
 
-    window.location.href = `index.html?ciudad=${encodeURIComponent(ciudad)}`;
+    window.location.href = `index.html?sucursal=${encodeURIComponent(sucursal)}`;
   });
 </script>
 
