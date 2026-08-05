@@ -232,6 +232,7 @@
 <header>
   <p class="eyebrow">Inspección semanal</p>
   <h1>Escanear extintor</h1>
+  <button id="btnLogout" style="margin-top:12px; background:none; border:1px solid var(--steel-line); color:var(--steel); font-size:12px; padding:6px 12px; border-radius:3px; cursor:pointer; font-family:'Inter',sans-serif;">Cerrar sesión</button>
 </header>
 
 <main>
@@ -354,8 +355,18 @@
     scanner.resume();
   };
 
-  window.addEventListener('DOMContentLoaded', () => {
+  window.addEventListener('DOMContentLoaded', async () => {
+    const { data } = await supabaseClient.auth.getSession();
+    if (!data.session) {
+      window.location.href = 'login.html';
+      return;
+    }
+
     scanner = new Html5Qrcode("reader");
+    document.getElementById('btnLogout').onclick = async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = 'login.html';
+    };
     scanner.start(
       { facingMode: "environment" },
       { fps: 10, qrbox: { width: 240, height: 240 } },
