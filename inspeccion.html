@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Inspección de extintor</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  :root{
+    --carbon: #1C1B1A;
+    --carbon-2: #262523;
+    --carbon-3: #302E2B;
+    --red: #C8102E;
+    --green: #2E7D32;
+    --amber: #F5A623;
+    --bone: #F2EFE9;
+    --steel: #4A4E54;
+    --steel-line: #38363430;
+  }
+
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body{
+    margin:0;
+    min-height:100vh;
+    background: var(--carbon);
+    color: var(--bone);
+    font-family: 'Inter', system-ui, sans-serif;
+    display:flex;
+    flex-direction:column;
+    padding-bottom: 100px;
+  }
+
+  .hazard-strip{
+    height:6px;
+    width:100%;
+    background: repeating-linear-gradient(
+      -45deg,
+      var(--amber) 0 14px,
+      var(--carbon) 14px 28px
+    );
+    flex-shrink:0;
+  }
+
+  header{
+    padding: 18px 20px 16px;
+    border-bottom: 1px solid var(--steel-line);
+  }
+
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin: 0 0 4px;
+  }
+
+  h1{
+    font-family:'Oswald', sans-serif;
+    font-weight:600;
+    font-size: 20px;
+    letter-spacing: 0.01em;
+    margin:0 0 8px;
+    text-transform: uppercase;
+  }
+
+  .extintor-meta{
+    display:flex;
+    gap: 16px;
+    font-size: 13px;
+    color: #C9C6BE;
+  }
+
+  main{
+    flex:1;
+    padding: 20px;
+    max-width: 560px;
+    width:100%;
+    margin: 0 auto;
+  }
+
+  .progress{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--steel);
+    margin-bottom: 18px;
+  }
+
+  .question-card{
+    background: var(--carbon-2);
+    border: 1px solid var(--steel-line);
+    border-radius: 4px;
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+
+  .question-num{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--amber);
+    margin: 0 0 6px;
+  }
+
+  .question-text{
+    font-size: 15px;
+    line-height: 1.4;
+    margin: 0 0 14px;
+  }
+
+  .answer-buttons{
+    display:flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .answer-btn{
+    flex:1;
+    padding: 11px 8px;
+    background: var(--carbon-3);
+    border: 1px solid var(--steel-line);
+    border-radius: 3px;
+    color: var(--bone);
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    cursor:pointer;
+    text-align:center;
+  }
+  .answer-btn.selected.si{ background: var(--green); border-color: var(--green); }
+  .answer-btn.selected.no{ background: var(--red); border-color: var(--red); }
+  .answer-btn.selected.na{ background: var(--steel); border-color: var(--steel); }
+
+  .comentario{
+    width:100%;
+    padding: 10px 12px;
+    background: var(--carbon-3);
+    border: 1px solid var(--steel-line);
+    border-radius: 3px;
+    color: var(--bone);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    resize: vertical;
+    min-height: 40px;
+  }
+  .comentario::placeholder{ color: #6b6863; }
+
+  .comentario-label{
+    font-size: 11px;
+    color: var(--steel);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin: 0 0 6px;
+    display:block;
+  }
+
+  .submit-bar{
+    position: fixed;
+    bottom:0; left:0; right:0;
+    background: var(--carbon);
+    border-top: 1px solid var(--steel-line);
+    padding: 14px 20px;
+    display:flex;
+    justify-content:center;
+  }
+
+  button.primary{
+    width:100%;
+    max-width: 520px;
+    padding: 16px;
+    background: var(--red);
+    color: var(--bone);
+    border:none;
+    border-radius: 3px;
+    font-family:'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    cursor:pointer;
+  }
+  button.primary:disabled{ opacity: 0.4; cursor:not-allowed; }
+
+  .status-msg{
+    text-align:center;
+    font-size: 13px;
+    color: var(--steel);
+    margin-top: 10px;
+  }
+  .status-msg.error{ color: var(--red); }
+
+  /* Pantalla de confirmación */
+  .confirm-screen{
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding: 60px 24px;
+  }
+  .confirm-screen.visible{ display:flex; }
+  .confirm-badge{
+    width: 64px; height:64px;
+    border-radius: 50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size: 30px;
+    margin-bottom: 20px;
+  }
+  .confirm-badge.aprobado{ background: var(--green); }
+  .confirm-badge.atencion{ background: var(--red); }
+  .confirm-title{
+    font-family:'Oswald', sans-serif;
+    font-weight:600;
+    font-size: 22px;
+    text-transform: uppercase;
+    margin: 0 0 8px;
+  }
+  .confirm-sub{ color:#C9C6BE; font-size:14px; margin:0 0 28px; }
+</style>
+</head>
+<body>
+
+<div class="hazard-strip"></div>
+
+<header id="headerBlock">
+  <p class="eyebrow">Inspección semanal</p>
+  <h1 id="extintorUbicacion">Cargando...</h1>
+  <div class="extintor-meta">
+    <span id="extintorCodigo"></span>
+    <span id="extintorTipo"></span>
+  </div>
+</header>
+
+<main id="formMain">
+  <p class="progress" id="progress">0 / 9 respondidas</p>
+  <div id="questionsContainer"></div>
+</main>
+
+<div class="submit-bar" id="submitBar">
+  <div style="width:100%; max-width:520px;">
+    <button class="primary" id="btnSubmit" disabled>Guardar inspección</button>
+    <p class="status-msg" id="statusMsg"></p>
+  </div>
+</div>
+
+<div class="confirm-screen" id="confirmScreen">
+  <div class="confirm-badge" id="confirmBadge"></div>
+  <p class="confirm-title" id="confirmTitle"></p>
+  <p class="confirm-sub" id="confirmSub"></p>
+  <button class="primary" id="btnVolverEscanear" style="max-width:280px;">Escanear otro extintor</button>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://naihctepfrnprudwfexj.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_5rlhtpAIlwAbpz5Dgrwwbw_Kqur2RMS";
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const PREGUNTAS = [
+    { id: "manometro_zona_verde", texto: "¿El manómetro está en la zona verde?", permiteNA: true },
+    { id: "libre_obstrucciones", texto: "¿El extintor se encuentra libre de obstrucciones que le quiten visibilidad o fácil acceso?" },
+    { id: "seguro_pasador", texto: "¿El extintor cuenta con el seguro o pasador?" },
+    { id: "sello_intacto", texto: "¿El sello de seguridad se encuentra intacto?" },
+    { id: "sin_danos_fisicos", texto: "¿El extintor está libre de golpes, corrosión excesiva, abolladuras, fugas visibles o deformaciones?" },
+    { id: "manguera_sin_danos", texto: "¿La manguera o boquilla está libre de grietas, obstrucciones o daños visibles?" },
+    { id: "etiqueta_vencimiento", texto: "¿El extintor cuenta con su etiqueta de fecha de vencimiento anual?" },
+    { id: "vencimiento_vigente", texto: "¿La fecha de vencimiento del extintor se encuentra vigente?" },
+    { id: "soporte_buen_estado", texto: "¿El soporte y/o base del extintor se encuentra en buenas condiciones?" }
+  ];
+
+  const params = new URLSearchParams(window.location.search);
+  const extintorId = params.get('extintor_id');
+
+  const respuestas = {}; // { preguntaId: { respuesta: 'si'|'no'|'na', comentario: '' } }
+
+  const container = document.getElementById('questionsContainer');
+  const progressEl = document.getElementById('progress');
+  const btnSubmit = document.getElementById('btnSubmit');
+  const statusMsg = document.getElementById('statusMsg');
+
+  function actualizarProgreso() {
+    const respondidas = Object.keys(respuestas).length;
+    progressEl.textContent = `${respondidas} / ${PREGUNTAS.length} respondidas`;
+    btnSubmit.disabled = respondidas < PREGUNTAS.length;
+  }
+
+  function renderPreguntas() {
+    PREGUNTAS.forEach((p, idx) => {
+      const card = document.createElement('div');
+      card.className = 'question-card';
+
+      const opciones = p.permiteNA
+        ? [['si','Sí'], ['no','No'], ['na','No aplica']]
+        : [['si','Sí'], ['no','No']];
+
+      card.innerHTML = `
+        <p class="question-num">Pregunta ${idx + 1} de ${PREGUNTAS.length}</p>
+        <p class="question-text">${p.texto}</p>
+        <div class="answer-buttons" data-pregunta="${p.id}">
+          ${opciones.map(([val, label]) => `<button type="button" class="answer-btn" data-valor="${val}">${label}</button>`).join('')}
+        </div>
+        <label class="comentario-label">Comentario (opcional)</label>
+        <textarea class="comentario" placeholder="Detalle del estado, condición o defecto..." data-pregunta-comentario="${p.id}"></textarea>
+      `;
+      container.appendChild(card);
+    });
+
+    // Listeners de botones de respuesta
+    container.querySelectorAll('.answer-buttons').forEach(group => {
+      const preguntaId = group.dataset.pregunta;
+      group.querySelectorAll('.answer-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          group.querySelectorAll('.answer-btn').forEach(b => b.classList.remove('selected', 'si', 'no', 'na'));
+          btn.classList.add('selected', btn.dataset.valor);
+
+          if (!respuestas[preguntaId]) respuestas[preguntaId] = { respuesta: '', comentario: '' };
+          respuestas[preguntaId].respuesta = btn.dataset.valor;
+          actualizarProgreso();
+        });
+      });
+    });
+
+    // Listeners de comentarios
+    container.querySelectorAll('.comentario').forEach(textarea => {
+      textarea.addEventListener('input', () => {
+        const preguntaId = textarea.dataset.preguntaComentario;
+        if (!respuestas[preguntaId]) respuestas[preguntaId] = { respuesta: '', comentario: '' };
+        respuestas[preguntaId].comentario = textarea.value;
+      });
+    });
+  }
+
+  async function cargarExtintor() {
+    const { data, error } = await supabaseClient
+      .from('extintores')
+      .select('*')
+      .eq('id', extintorId)
+      .single();
+
+    if (error || !data) {
+      document.getElementById('extintorUbicacion').textContent = 'Extintor no encontrado';
+      return;
+    }
+
+    document.getElementById('extintorUbicacion').textContent = data.ubicacion;
+    document.getElementById('extintorCodigo').textContent = data.codigo_qr;
+    document.getElementById('extintorTipo').textContent = data.tipo || '';
+  }
+
+  function calcularResultado() {
+    const hayFallas = PREGUNTAS.some(p => respuestas[p.id]?.respuesta === 'no');
+    return hayFallas ? 'requiere_atencion' : 'aprobado';
+  }
+
+  async function guardarInspeccion() {
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = 'Guardando...';
+    statusMsg.textContent = '';
+    statusMsg.classList.remove('error');
+
+    const { data: userData } = await supabaseClient.auth.getUser();
+    if (!userData.user) {
+      window.location.href = 'login.html';
+      return;
+    }
+
+    const respuestasArray = PREGUNTAS.map(p => ({
+      pregunta: p.id,
+      respuesta: respuestas[p.id].respuesta,
+      comentario: respuestas[p.id].comentario || ''
+    }));
+
+    const resultado = calcularResultado();
+
+    const { error } = await supabaseClient.from('inspecciones').insert({
+      extintor_id: extintorId,
+      inspector_id: userData.user.id,
+      resultado: resultado,
+      respuestas: respuestasArray
+    });
+
+    if (error) {
+      statusMsg.textContent = 'Error al guardar. Intenta de nuevo.';
+      statusMsg.classList.add('error');
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = 'Guardar inspección';
+      return;
+    }
+
+    mostrarConfirmacion(resultado);
+  }
+
+  function mostrarConfirmacion(resultado) {
+    document.getElementById('headerBlock').style.display = 'none';
+    document.getElementById('formMain').style.display = 'none';
+    document.getElementById('submitBar').style.display = 'none';
+
+    const badge = document.getElementById('confirmBadge');
+    const title = document.getElementById('confirmTitle');
+    const sub = document.getElementById('confirmSub');
+
+    if (resultado === 'aprobado') {
+      badge.classList.add('aprobado');
+      badge.textContent = '✓';
+      title.textContent = 'Extintor aprobado';
+      sub.textContent = 'La inspección se guardó correctamente.';
+    } else {
+      badge.classList.add('atencion');
+      badge.textContent = '!';
+      title.textContent = 'Requiere atención';
+      sub.textContent = 'Se guardó la inspección con hallazgos que necesitan seguimiento.';
+    }
+
+    document.getElementById('confirmScreen').classList.add('visible');
+  }
+
+  document.getElementById('btnSubmit').addEventListener('click', guardarInspeccion);
+  document.getElementById('btnVolverEscanear').addEventListener('click', () => {
+    window.location.href = 'index.html';
+  });
+
+  window.addEventListener('DOMContentLoaded', async () => {
+    const { data } = await supabaseClient.auth.getSession();
+    if (!data.session) {
+      window.location.href = 'login.html';
+      return;
+    }
+    if (!extintorId) {
+      document.getElementById('extintorUbicacion').textContent = 'Falta el extintor a inspeccionar';
+      return;
+    }
+    await cargarExtintor();
+    renderPreguntas();
+  });
+</script>
+
+</body>
+</html>
