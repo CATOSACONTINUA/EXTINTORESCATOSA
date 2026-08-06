@@ -212,7 +212,18 @@
     opacity: 0.85;
   }
   .brand-footer img{
-    max-width: 260px;
+    max-width: 560px;
+    width: 100%;
+    height: auto;
+  }
+
+  .brand-top{
+    padding: 20px 20px 4px;
+    display:flex;
+    justify-content:center;
+  }
+  .brand-top img{
+    max-width: 240px;
     width: 100%;
     height: auto;
   }
@@ -221,6 +232,7 @@
 <body>
 
 <div class="hazard-strip"></div>
+<div class="brand-top"><img src="logo-catosa-top.png" alt="Catosa"></div>
 
 <header>
   <div>
@@ -291,7 +303,14 @@
 
   async function generarQR(texto) {
     const canvas = document.getElementById('qrCanvas');
-    await QRCode.toCanvas(canvas, texto, { width: 220, margin: 2 });
+    try {
+      await QRCode.toCanvas(canvas, texto, { width: 220, margin: 2 });
+      return true;
+    } catch (err) {
+      statusMsg.textContent = 'No se pudo generar el QR. Revisa tu conexión e intenta de nuevo.';
+      statusMsg.classList.add('error');
+      return false;
+    }
   }
 
   form.addEventListener('submit', async (e) => {
@@ -364,23 +383,39 @@
       return;
     }
 
-    contenedor.innerHTML = data.map(ext => `
-      <div class="extintor-item">
-        <div>
-          <span class="codigo">${ext.codigo_qr}</span> — ${ext.ubicacion}
-        </div>
-        <button onclick="verQR('${ext.codigo_qr}', '${ext.ubicacion.replace(/'/g, "\\'")}')">Ver QR</button>
-      </div>
-    `).join('');
+    contenedor.innerHTML = '';
+    data.forEach(ext => {
+      const row = document.createElement('div');
+      row.className = 'extintor-item';
+
+      const info = document.createElement('div');
+      const codigoSpan = document.createElement('span');
+      codigoSpan.className = 'codigo';
+      codigoSpan.textContent = ext.codigo_qr;
+      info.appendChild(codigoSpan);
+      info.appendChild(document.createTextNode(' — ' + ext.ubicacion));
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = 'Ver QR';
+      btn.addEventListener('click', () => verQR(ext.codigo_qr, ext.ubicacion));
+
+      row.appendChild(info);
+      row.appendChild(btn);
+      contenedor.appendChild(row);
+    });
   }
 
-  window.verQR = async (codigo, ubicacion) => {
-    await generarQR(codigo);
+  async function verQR(codigo, ubicacion) {
+    statusMsg.textContent = '';
+    statusMsg.classList.remove('error', 'success');
+    const exito = await generarQR(codigo);
+    if (!exito) return;
     document.getElementById('qrLabel').textContent = codigo;
     document.getElementById('qrUbicacion').textContent = ubicacion;
     qrResult.classList.add('visible');
     qrResult.scrollIntoView({ behavior: 'smooth' });
-  };
+  }
 
   window.addEventListener('DOMContentLoaded', async () => {
     const { data } = await supabaseClient.auth.getSession();
